@@ -241,7 +241,7 @@ def train_model(args,vocab1,vocab2,device):
                         loss_list1 = []
                         # loss_list2=[]
 
-                    if (step_in_epoch) % n_val == 0 and step_in_epoch == 0:
+                    if (step_in_epoch) % n_val == 0 and step_in_epoch != 0:
                         print("doing evaluation")
                         model1.eval()
                         # model2.eval()
