@@ -40,6 +40,7 @@ class Bandit(nn.Module):
                                                nn.Tanh(),
                                                self.dropout ) 
         self.normalisation_matrix = nn.Parameter(torch.randn(self.embedding_dim,1))
+        self.sigmoid = nn.Sigmoid()
         
     def content_selection(self,records):
         att_matrix = torch.matmul(torch.matmul(records,self.attention_matrices[0]),records.transpose(1,0)) # (r,r)
@@ -55,8 +56,9 @@ class Bandit(nn.Module):
         r_cs_mean = torch.mean(r_cs,0) #(emb_dim)
         lstm_output,_ = self.lstm_layer(r_cs.unsqueeze(0),(r_cs_mean.view(1,1,-1),r_cs_mean.view(1,1,-1))) #(1,r,emb_dim)
         lstm_output = lstm_output.view(-1,self.LSTM_hidden_units)
+        lstm_output = self.dropout(lstm_output)
         prob_out = self.probability_layer(lstm_output) 
-        prob = F.softmax(torch.matmul(prob_out,self.normalisation_matrix),0) #(r,1)
+        prob = self.sigmoid(torch.matmul(prob_out,self.normalisation_matrix)) #(r,1)
         return prob.view(-1,1),lstm_output
 
 
