@@ -28,7 +28,7 @@ def ext_model_eval(model1,model2, vocab, args, eval_data="test",device='cpu'):
     print("loading data %s" % eval_data)
 
     model1.eval()
-    model2.eval()
+    # model2.eval()
     data_loader = preprocess.PickleReader(args.data_dir)
     eval_rewards = []
     data_iter = data_loader.chunked_data_reader(eval_data)
