@@ -219,7 +219,7 @@ def train_model(args,vocab1,vocab2,device):
                             optimizer1.zero_grad()
 
                         reward_list.append(reward)
-                        loss_list1.append(bandit_loss.data)
+                        loss_list1.append(bandit_loss.data.cpu().numpy()[0])
                         # loss_list2.append(total_loss)
 
                         # if args.lr_sch==2:
