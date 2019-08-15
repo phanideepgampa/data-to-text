@@ -138,7 +138,7 @@ def train_model(args,vocab1,vocab2,device):
         model1.to(device)
         # model2 = torch.load(model_name_2, map_location=lambda storage, loc: storage)
         # model2.to(device)       
-        log_name = model_name_1
+        log_name = 'log/'+model_name_1.split('/')[-1]
         print("finish loading and evaluate models:")
         # evaluate.ext_model_eval(extract_net, vocab, args, eval_data="test")
         best_eval_reward = evaluate.ext_model_eval(model1, None,vocab2, args, "val",device)
