@@ -232,7 +232,7 @@ def train_model(args,vocab1,vocab2,device):
                         print(e)
                         traceback.print_exc()
 
-                    if (step_in_epoch) % n_step == 0 or step_in_epoch != 0:
+                    if (step_in_epoch) % n_step == 0 and step_in_epoch != 0:
                         # logging.info('Epoch ' + str(epoch) + ' Step ' + str(step_in_epoch) +
                         #     ' reward: ' + str(np.mean(reward_list))+' loss1: ' + str(np.mean(loss_list1))+' loss2: ' + str(np.mean(loss_list2)))
                         logging.info('Epoch ' + str(epoch) + ' Step ' + str(step_in_epoch) +
