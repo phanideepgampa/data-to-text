@@ -78,6 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--vocab_file_1', type=str, default='rotowire/pickle_data/vocab.600d.src.p')
     parser.add_argument('--vocab_file_2', type=str, default='rotowire/pickle_data/vocab.600d.target.p')
     parser.add_argument('--data_dir', type=str, default='rotowire/pickle_data/')
+    parser.add_argument('--data', type=str, default='test')
     parser.add_argument('--model_file_1', type=str, default='model1/bandit.model')
     parser.add_argument('--model_file_2', type=str, default='model2/gen.model')
     parser.add_argument('--device', type=int, default=0,
@@ -97,12 +98,12 @@ if __name__ == '__main__':
     with open(args.vocab_file_2, "rb") as f:
         vocab2 = pickle.load(f)
 
-    print("loading existing models: %s %s" % args.model_file_1,args.model_file_1)
+    print("loading existing models: %s " % args.model_file_1)
     model1 = torch.load(args.model_file_1, map_location=lambda storage, loc: storage)
-    model2 = torch.load(args.model_file_2, map_location=lambda storage, loc: storage)
+    # model2 = torch.load(args.model_file_2, map_location=lambda storage, loc: storage)
     model1.cuda()
-    model2.cuda()
-    data = args.data_dir.split('/')[0]
+    # model2.cuda()
+    data = args.data
     start_time = time.time()
-    ext_model_eval(model1,model2,vocab2,args,eval_data=data,device=device)
+    ext_model_eval(model1,None,vocab2,args,eval_data=data,device=device)
     print('Test time:', time.time() - start_time)
