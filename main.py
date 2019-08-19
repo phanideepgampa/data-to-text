@@ -162,7 +162,7 @@ def train_model(args,vocab1,vocab2,device):
     n_step = 100
     gamma = args.gamma
     n_val = int(num_data/(7*args.train_batch))
-    decode_loss = torch.nn.CrossEntropyLoss()
+    supervised_loss = torch.nn.BCELoss()
     with torch.autograd.set_detect_anomaly(True):
         for epoch in tqdm(range(args.epochs_ext),desc="epoch:"):
             train_iter = data_loader.chunked_data_reader("train", data_quota=args.train_example_quota)  #-1
@@ -215,19 +215,22 @@ def train_model(args,vocab1,vocab2,device):
                             # optimizer2.zero_grad()
                             # total_loss/=len(sample_content)
                             bandit_loss, reward = bandit.calculate_loss(sample_content,context.gold_index,greedy_cp)
-                            bandit_loss.backward()
+                            labels = np.zeros(len(prob))
+                            labels[context.gold_index] =1.0
+                            ml_loss = supervised_loss(prob.view(-1),torch.tensor(labels).type(torch.float).to(device))
+                            loss = gamma*(bandit_loss)+((1-gamma)*ml_loss)
+                            loss.backward()
                             optimizer1.step()
                             optimizer1.zero_grad()
 
                         reward_list.append(reward)
-                        loss_list1.append(bandit_loss.data.cpu().numpy()[0])
+                        loss_list1.append(loss.data.cpu().numpy()[0])
                         # loss_list2.append(total_loss)
 
                         # if args.lr_sch==2:
                         #     scheduler.step()    
-                        total_loss = 0.
                         # logging.info('Epoch %d Step %d Reward %.4f Loss1 %.4f Loss2 %.4f' % (epoch, step_in_epoch, reward,bandit_loss,total_loss))
-                        logging.info('Epoch %d Step %d Reward %.4f Loss1 %.4f' % (epoch, step_in_epoch, reward,bandit_loss))
+                        logging.info('Epoch %d Step %d Reward %.4f Loss1 %.4f' % (epoch, step_in_epoch, reward,loss))
 
                     except Exception as e:
                         print(e)
