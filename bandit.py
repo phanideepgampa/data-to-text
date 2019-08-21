@@ -106,13 +106,10 @@ def generate_reward(gold_summary, summary,gold_cp,cp,reward_type=1):
         last_reward =0 
         i_p =cp.index(0)
         i_g =len(gold_cp)-1
-        if i_p == i_g :
-            last_reward =1
-        else:
-            last_reward= 1/float(abs(i_p-i_g))
-        return (precision+recall+last_reward-dld)/4
+        last_reward= 3.0/(float(abs(i_p-i_g))+3.0)
+        return (precision+recall+last_reward+(1-dld))/4
     else:
-        return -0.5
+        return 0
 
     # reward = 0
     # ap=0
