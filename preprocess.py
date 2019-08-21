@@ -176,7 +176,7 @@ def write_to_pickle(in_file, out_file,vocab1,vocab2,chunk_size=1000,data='train'
         for line in content_plan:
             temp = line.split()
             num_records.append(len(temp))
-            record_ids.append([int(x)-4 for x in temp])
+            record_ids.append([int(x)-3 for x in temp])
     else:
         content_plan = open(os.path.join(in_file,data+'_content_plan.txt'),encoding='utf-8')
         for line in content_plan:
@@ -187,9 +187,11 @@ def write_to_pickle(in_file, out_file,vocab1,vocab2,chunk_size=1000,data='train'
     with open(os.path.join(in_file,"src_"+data+'.txt'),encoding='utf-8') as records, open(os.path.join(in_file,"tgt_"+data+'.txt'),encoding='utf-8') as summaries:
         for r,s in tqdm(zip(records,summaries),desc=in_file) :
             temp = r.split()[4:]
-            num_r = num_records[b-1]
+            num_r = 60
+            records_list=[[vocab1['<pad>'] for _ in range(4)]]
             if record_ids:
                 r_id = record_ids[b-1]
+                r_id.append(0)
             else:
                 r_id = None
             for feat in temp:
@@ -202,7 +204,7 @@ def write_to_pickle(in_file, out_file,vocab1,vocab2,chunk_size=1000,data='train'
             min_length = min(min_length,len(records_list))
             max_length = max(max_length,len(records_list))
             contexts.append(Context(records_list,summary,num_r,r_id))
-            records_list=[]
+            
             if b % chunk_size ==0 :
                 pickle.dump(Dataset(contexts),open(out_file%(b/chunk_size),"wb+"))
                 contexts=[]
