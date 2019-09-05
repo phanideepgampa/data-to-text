@@ -17,7 +17,7 @@ from tqdm import tqdm
 import model
 import evaluate
 from preprocess import PickleReader,BatchDataLoader,Vocab,Context,Dataset
-from bandit import ContextualBandit
+from bandit import ContextualBandit,generate_reward,return_record_index
 
 np.set_printoptions(precision=4, suppress=True)
 
@@ -31,6 +31,15 @@ Config2 = namedtuple('parameters',
                      'LSTM_hidden_units','LSTM_layers','train_embed','decode_type',
                      'word2id', 'id2word',
                      'dropout'])
+
+
+def greedy_sample(probs,
+                   max_num_of_rec=3,device='cpu'):
+    # sample sentences
+    probs_numpy = probs.data.cpu().numpy()
+    probs_numpy = np.reshape(probs_numpy, len(probs_numpy))
+    greedy_index_list,_ = return_record_index(probs_numpy,probs,sample_method="greedy",max_num_of_rec=max_num_of_rec,device=device)
+    return greedy_index_list,_
 
 def seed_everything(seed=1234):
     random.seed(seed)
@@ -163,6 +172,7 @@ def train_model(args,vocab1,vocab2,device):
     gamma = args.gamma
     n_val = int(num_data/(7*args.train_batch))
     supervised_loss = torch.nn.BCELoss()
+    regression_loss = torch.nn.MSELoss()
     with torch.autograd.set_detect_anomaly(True):
         for epoch in tqdm(range(args.epochs_ext),desc="epoch:"):
             train_iter = data_loader.chunked_data_reader("train", data_quota=args.train_example_quota)  #-1
@@ -173,6 +183,7 @@ def train_model(args,vocab1,vocab2,device):
                         model1.train()
                         # model2.train()
                         step_in_epoch += 1                        
+                        loss =0.
                         reward=0.
                         for context in contexts:
                             records = context.records
@@ -180,8 +191,9 @@ def train_model(args,vocab1,vocab2,device):
                             records = torch.autograd.Variable(torch.LongTensor(records)).to(device)
                             # target = torch.autograd.Variable(torch.LongTensor(target)).to(device)
                             # target_len = len(target)
-                            prob,r_cs = model1(records)
-                            sample_content, greedy_cp = bandit.sample(prob,context,context.num_of_records)
+                            prob,num_r = model1(records)
+                            num_of_records = int(num_r.item()*100) 
+                            sample_content, greedy_cp = bandit.sample(prob,context,num_of_records)
                             # # apply data_parallel after this step
                             # sample_content.append((greedy_cp,0))
                             # gen_summaries = []
@@ -214,17 +226,25 @@ def train_model(args,vocab1,vocab2,device):
                             # optimizer2.step()
                             # optimizer2.zero_grad()
                             # total_loss/=len(sample_content)
-                            bandit_loss, reward = bandit.calculate_loss(sample_content,context.gold_index,greedy_cp)
+                            bandit_loss, reward_b = bandit.calculate_loss(sample_content,context.gold_index,greedy_cp)
+                            true_numr = context.num_of_records/100.
+                            r_loss = regression_loss(num_r,torch.tensor(true_numr).type(torch.float).to(device))
+                            #greedy_cp,bandit_loss = greedy_sample(prob,num_of_records+1,device)
+                            #reward_b = generate_reward(None,None,gold_cp=context.gold_index,cp=greedy_cp)
                             labels = np.zeros(len(prob))
                             labels[context.gold_index] =1.0
                             ml_loss = supervised_loss(prob.view(-1),torch.tensor(labels).type(torch.float).to(device))
-                            loss = gamma*(bandit_loss)+((1-gamma)*ml_loss)
-                            loss.backward()
-                            optimizer1.step()
-                            optimizer1.zero_grad()
+                            loss_e = (gamma*(bandit_loss+r_loss))+((1-gamma)*ml_loss)
+                            loss_e.backward()
+                            reward+=reward_b
+                            loss+=loss_e.item()
 
+                        optimizer1.step()
+                        optimizer1.zero_grad()
+                        loss/=args.train_batch
+                        reward/=args.train_batch
                         reward_list.append(reward)
-                        loss_list1.append(loss.data.cpu().numpy()[0])
+                        loss_list1.append(loss)
                         # loss_list2.append(total_loss)
 
                         # if args.lr_sch==2:
@@ -281,7 +301,7 @@ def main():
     parser.add_argument('--model_file_2', type=str, default='model2/gen.model')
     parser.add_argument('--decode_type',type = str, default='conditional')
     parser.add_argument('--beta',type=float,default = 0.9)
-    parser.add_argument('--gamma',type=float,default=0.9)
+    parser.add_argument('--gamma',type=float,default=1.0)
     parser.add_argument('--lr_sch',type=int,default=1)
     parser.add_argument('--lstm_layer_1',type=int,default=1)
     parser.add_argument('--lstm_layer_2',type=int,default=1)

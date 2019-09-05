@@ -35,11 +35,18 @@ class Bandit(nn.Module):
                                  hidden_size=self.LSTM_hidden_units,
                                  batch_first=True,
                                  num_layers=1,
+                                #  bidirectional = True,
                                  dropout= self.drop)
         self.probability_layer = nn.Sequential(nn.Linear(self.embedding_dim,self.embedding_dim),
                                                nn.Tanh(),
                                                self.dropout ) 
         self.normalisation_matrix = nn.Parameter(torch.randn(self.embedding_dim,1))
+        self.predict_nrows = nn.Sequential(nn.Linear(self.embedding_dim,self.embedding_dim),
+                                            nn.Tanh(),
+                                            self.dropout,
+                                            nn.Linear(self.embedding_dim,1),
+                                            nn.Sigmoid()
+                                             )
         self.sigmoid = nn.Sigmoid()
         
     def content_selection(self,records):
@@ -55,11 +62,11 @@ class Bandit(nn.Module):
         r_cs = self.content_selection(encoded_records) #(r,emb_dim)
         r_cs_mean = torch.mean(r_cs,0) #(emb_dim)
         lstm_output,_ = self.lstm_layer(r_cs.unsqueeze(0),(r_cs_mean.view(1,1,-1),r_cs_mean.view(1,1,-1))) #(1,r,emb_dim)
-        lstm_output = lstm_output.view(-1,self.LSTM_hidden_units)
+        lstm_output = lstm_output.view(len(records),self.LSTM_hidden_units)
         lstm_output = self.dropout(lstm_output)
         prob_out = self.probability_layer(lstm_output) 
         prob = self.sigmoid(torch.matmul(prob_out,self.normalisation_matrix)) #(r,1)
-        return prob.view(-1,1),lstm_output
+        return prob.view(-1,1),self.predict_nrows(lstm_output[0])
 
 
 class Generator(nn.Module):

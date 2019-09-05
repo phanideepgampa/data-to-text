@@ -44,9 +44,9 @@ def ext_model_eval(model1,model2, vocab, args, eval_data="test",device='cpu'):
             target = context.summary
             records = torch.autograd.Variable(torch.LongTensor(records)).to(device)
             target = torch.autograd.Variable(torch.LongTensor(target)).to(device)
-            target_len = len(target)
-            prob,r_cs = model1(records)
-            cp = greedy_sample(prob,context.num_of_records,device)
+            prob,num_r = model1(records)
+            num_of_records = int(num_r.item()*100)
+            cp = greedy_sample(prob,num_of_records,device)
 
             # ## greedy decode/ beam decode ?
 
@@ -78,8 +78,8 @@ if __name__ == '__main__':
     parser.add_argument('--vocab_file_1', type=str, default='rotowire/pickle_data/vocab.600d.src.p')
     parser.add_argument('--vocab_file_2', type=str, default='rotowire/pickle_data/vocab.600d.target.p')
     parser.add_argument('--data_dir', type=str, default='rotowire/pickle_data/')
-    parser.add_argument('--data', type=str, default='test')
-    parser.add_argument('--model_file_1', type=str, default='model1/bandit.model')
+    parser.add_argument('--data', type=str, default='val')
+    parser.add_argument('--model_file_1', type=str, default='model1/bandit.model.batch_avg.herke.gamma.0.75.beta.0.9.batch.1.learning_rate.5e-05.bsz.20.data.rotowire.emb.600.dropout.0.2.max_num.5.train_embed.True.d2s')
     parser.add_argument('--model_file_2', type=str, default='model2/gen.model')
     parser.add_argument('--device', type=int, default=0,
                         help='select GPU')

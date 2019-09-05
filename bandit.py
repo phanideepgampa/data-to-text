@@ -89,28 +89,21 @@ def generate_reward(gold_summary, summary,gold_cp,cp,reward_type=1):
     #Bleu score
     # bleu = corpus_bleu([gold_summary],summary)
 
-    if 0 in cp:
-        cp = list(deepcopy(cp))
-        true_cp = cp[:cp.index(0)+1]
-        # DLD
-        if gold_cp:
-            dld = normalized_damerau_levenshtein_distance(list(gold_cp),list(true_cp))
-        else:
-            dld=0.
-        boolean = np.zeros(len(true_cp))
-        for pos,element in enumerate(true_cp):
-            if element in gold_cp:
-                boolean[pos]=1
-        precision = np.mean(boolean)
-        recall = np.sum(boolean)/len(gold_cp)
-        last_reward =0 
-        i_p =cp.index(0)
-        i_g =len(gold_cp)-1
-        last_reward= 3.0/(float(abs(i_p-i_g))+3.0)
-        return (precision+recall+last_reward+(1-dld))/4
+    cp = list(deepcopy(cp))
+    # DLD
+    if gold_cp:
+        dld = normalized_damerau_levenshtein_distance(list(gold_cp),list(cp))
     else:
-        return 0
+        dld=0.
+    boolean = np.zeros(len(cp))
+    for pos,element in enumerate(cp):
+        if element in gold_cp:
+            boolean[pos]=1
+    precision = np.mean(boolean)
+    recall = np.sum(boolean)/len(gold_cp)
+    return (precision+recall+(1-dld))/3
 
+    
     # reward = 0
     # ap=0
     # reciprocal_rank=0
@@ -124,8 +117,13 @@ def generate_reward(gold_summary, summary,gold_cp,cp,reward_type=1):
     # if true:
     #     ap=average_precision(inp)*(sum(inp>0)/true)
     # reciprocal_rank = mean_reciprocal_rank([inp])
-    # rewards = [(ap+reciprocal_rank)/2,dcg_at_k(inp,size)]
+    # last_reward =0 
+    # i_p =cp.index(0)
+    # i_g =len(gold_cp)-1
+    # last_reward= 3.0/(float(abs(i_p-i_g))+3.0)
+    # rewards = [(ap+last_reward)/2,dcg_at_k(inp,size)]
     # return rewards[reward_type-1]
+
 
 
 
